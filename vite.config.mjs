@@ -18,13 +18,13 @@ export default defineConfig(() => {
       preprocessorOptions: {
         scss: {
           quietDeps: true,
-          silenceDeprecations: ['import', 'legacy-js-api'],
+          // silenceDeprecations: ['import', 'legacy-js-api'],
         },
       },
     },
     esbuild: {
-      loader: 'jsx',
-      include: /src\/.*\.jsx?$/,
+      loader: 'tsx',
+      include: /src\/.*\.[jt]sx?$/,
       exclude: [],
     },
     optimizeDeps: {
@@ -46,10 +46,10 @@ export default defineConfig(() => {
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.scss'],
     },
     server: {
-      port: 3000,
-      proxy: {
-        // https://vitejs.dev/config/server-options.html
-      },
+      server: {
+        port: 8888, // 여기서 포트를 8888로 설정합니다.
+        open: true // 서버 시작 시 브라우저를 자동으로 엽니다 (선택사항).
+      }
     },
   }
 })

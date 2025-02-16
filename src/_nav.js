@@ -29,6 +29,16 @@ const _nav = [
   },
   {
     component: CNavTitle,
+    name: 'Community',
+  },
+  {
+    component: CNavItem,
+    name: 'Board',
+    to: '/board',
+    icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavTitle,
     name: 'Theme',
   },
   {

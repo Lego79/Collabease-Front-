@@ -1,21 +1,23 @@
 import React, { Suspense, useEffect } from 'react'
-import { HashRouter, Route, Routes } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
-
-// We use those styles to show code examples, you should remove them in your application.
 import './scss/examples.scss'
 
-// Containers
+// Lazy-loaded 컴포넌트들
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
-
-// Pages
-const Login = React.lazy(() => import('./views/pages/login/Login'))
+const Login = React.lazy(() => import('./pages/login/Login'))
+const OAuthRedirect = React.lazy(() => import('./pages/login/OAuthRedirect'))
 const Register = React.lazy(() => import('./views/pages/register/Register'))
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+
+const Loader = () => (
+  <div className="pt-3 text-center">
+    <CSpinner color="primary" variant="grow" />
+  </div>
+)
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
@@ -27,33 +29,72 @@ const App = () => {
     if (theme) {
       setColorMode(theme)
     }
-
-    if (isColorModeSet()) {
-      return
+    if (!isColorModeSet()) {
+      setColorMode(storedTheme)
     }
-
-    setColorMode(storedTheme)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return (
-    <HashRouter>
-      <Suspense
-        fallback={
-          <div className="pt-3 text-center">
-            <CSpinner color="primary" variant="grow" />
-          </div>
-        }
-      >
-        <Routes>
-          <Route exact path="/login" name="Login Page" element={<Login />} />
-          <Route exact path="/register" name="Register Page" element={<Register />} />
-          <Route exact path="/404" name="Page 404" element={<Page404 />} />
-          <Route exact path="/500" name="Page 500" element={<Page500 />} />
-          <Route path="*" name="Home" element={<DefaultLayout />} />
-        </Routes>
-      </Suspense>
-    </HashRouter>
-  )
+  // createBrowserRouter를 사용한 라우터 설정
+  const router = createBrowserRouter([
+    {
+      path: '/',
+      element: (
+        <Suspense fallback={<Loader />}>
+          <Login />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/login',
+      element: (
+        <Suspense fallback={<Loader />}>
+          <Login />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/oauth-redirect',
+      element: (
+        <Suspense fallback={<Loader />}>
+          <OAuthRedirect />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/register',
+      element: (
+        <Suspense fallback={<Loader />}>
+          <Register />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/404',
+      element: (
+        <Suspense fallback={<Loader />}>
+          <Page404 />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/500',
+      element: (
+        <Suspense fallback={<Loader />}>
+          <Page500 />
+        </Suspense>
+      ),
+    },
+    {
+      path: '*',
+      element: (
+        <Suspense fallback={<Loader />}>
+          <DefaultLayout />
+        </Suspense>
+      ),
+    },
+  ])
+
+  return <RouterProvider router={router} />
 }
 
 export default App

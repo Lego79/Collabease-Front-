@@ -1,4 +1,5 @@
 import React from 'react'
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
@@ -51,9 +52,18 @@ const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
 
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
+//my page
+
+const Logins = React.lazy(() => import('./pages/login/Login'))
+const OAuthRedirect = React.lazy(() => import('./pages/login/OAuthRedirect'))
+const Board = React.lazy(() => import('./pages/board/Board'))
+
+import ProtectedRoute from './routes/ProtectedRoute';
+
 const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
+  { path: '/board', name: 'Board', element: Board },
   { path: '/theme', name: 'Theme', element: Colors, exact: true },
   { path: '/theme/colors', name: 'Colors', element: Colors },
   { path: '/theme/typography', name: 'Typography', element: Typography },
@@ -97,6 +107,7 @@ const routes = [
   { path: '/notifications/modals', name: 'Modals', element: Modals },
   { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
+  
 ]
 
 export default routes
