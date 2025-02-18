@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux'
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
 import './scss/examples.scss'
+import 'antd/dist/reset.css';
+
 
 // Lazy-loaded 컴포넌트들
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
