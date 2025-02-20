@@ -297,29 +297,30 @@ const CommentItem: React.FC<CommentItemProps> = ({
       {/* 댓글 한 줄 표시 */}
       <Typography
         variant="body2"
-        sx={{
-          display: 'flex',
-          gap: '8px',
-          alignItems: 'center',
-          cursor: level === 0 ? 'pointer' : 'default',
-        }}
+        sx={{ cursor: level === 0 ? 'pointer' : 'default' }}
         onClick={handleCommentClick}
       >
-        {/* 여기서 commenterNickname을 표시 */}
-        <span>[{comment.commenterNickname}]</span>
-        <span>{comment.commentContent}</span>
-        <span>{comment.commentCreatedAt}</span>
-        <Button
-          variant="text"
-          color="error"
-          size="small"
-          onClick={handleDelete}
-          sx={{ minWidth: 'auto', p: 0 }}
-        >
-          X
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: '8px' }}>
+          <Box sx={{ width: '15%' }}>
+            [{comment.commenterNickname}]
+          </Box>
+          <Box sx={{ width: '70%' }}>
+            {comment.commentContent}
+          </Box>
+          <Box sx={{ width: '15%', textAlign: 'right' }}>
+            {comment.commentCreatedAt}
+          </Box>
+          <Button
+            variant="text"
+            color="error"
+            size="small"
+            onClick={handleDelete}
+            sx={{ minWidth: 'auto', p: 0 }}
+          >
+            X
+          </Button>
+        </Box>
       </Typography>
-
       {/* level=0인 댓글만 대댓글 작성 가능 */}
       {level === 0 && isOpen && (
         <Box sx={{ mt: 1 }}>
@@ -532,9 +533,30 @@ const handleDeleteComment = (commentId: number) => {
       setSelectedBoard({ ...selectedBoard, comments: updatedComments });
     })
     .catch((error) => {
-      console.error('Error deleting comment:', error);
+      if (error.response) {
+        const status = error.response.status;
+        // 백엔드에서 내려주는 데이터가 JSON 형태라면, 보통 { code, message, timestamp } 형태일 것
+        const data = error.response.data;
+
+        // 만약 data가 { code, message, timestamp } 형태라면 message를 이렇게 꺼낼 수 있음
+        const errorMessage = data.message || '오류가 발생했습니다.';
+
+        if (status === 403) {
+          // 권한 오류 (예: "본인이 작성한 댓글만 삭제할 수 있습니다.")
+          alert(errorMessage);
+        } else {
+          // 그 외 에러 상태 처리
+          alert(`Error(${status}): ${errorMessage}`);
+        }
+      } else {
+        // 네트워크 에러 등
+        console.error('Network or other error:', error);
+        alert('댓글 삭제 중 오류가 발생했습니다.');
+      }
     });
 };
+
+
 
 
   // 재귀적으로 해당 commentId 삭제
@@ -559,9 +581,25 @@ const handleDeleteComment = (commentId: number) => {
   };
 
   return (
-    <Box maxWidth="md" sx={{ display: 'flex', gap: 2, mt: 2 }}>
-      {/* 게시판 목록 */}
-      <Paper elevation={1} sx={{ width: '30%', height: 'auto' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        width: '100vw',
+        height: '100vh',
+        gap: 2,
+        p: 2,
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* 게시판 목록 (30%) */}
+      <Paper
+        elevation={1}
+        sx={{
+          width: '20%',
+          height: '100%',
+          overflowY: 'auto',
+        }}
+      >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
           <Typography variant="h6" sx={{ ml: 1 }}>
             게시판 목록
@@ -588,11 +626,11 @@ const handleDeleteComment = (commentId: number) => {
           ))}
         </List>
       </Paper>
-
-      {/* 상세 및 댓글 */}
-      <Box sx={{ flexGrow: 1 }}>
+  
+      {/* 상세 및 댓글 영역 (70%) */}
+      <Box sx={{ width: '55%', height: '100%', overflowY: 'auto' }}>
         {selectedBoard ? (
-          <Paper elevation={3} sx={{ p: 2 }}>
+          <Paper elevation={3} sx={{ p: 2, height: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h5" gutterBottom>
               {selectedBoard.boardTitle}
             </Typography>
@@ -600,10 +638,10 @@ const handleDeleteComment = (commentId: number) => {
               {selectedBoard.boardContent}
             </Typography>
             <Divider sx={{ my: 2 }} />
-
+  
             {/* TASK 수정 컴포넌트 */}
             <TaskInfo board={selectedBoard} onTaskUpdate={handleTaskUpdate} />
-
+   
             <Typography variant="h6" sx={{ mb: 1 }}>
               댓글
             </Typography>
@@ -614,7 +652,7 @@ const handleDeleteComment = (commentId: number) => {
               openReplyCommentId={openReplyCommentId}
               setOpenReplyCommentId={setOpenReplyCommentId}
             />
-
+  
             {/* 최상위 댓글 입력창 */}
             {!newCommentActive ? (
               <Box
@@ -653,7 +691,7 @@ const handleDeleteComment = (commentId: number) => {
           <Typography variant="h6">게시글을 선택해주세요</Typography>
         )}
       </Box>
-
+  
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <CreateBoardDialog onClose={handleCloseDialog} onBoardCreated={handleBoardCreated} />
       </Dialog>
