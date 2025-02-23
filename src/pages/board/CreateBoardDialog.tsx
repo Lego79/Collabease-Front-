@@ -8,6 +8,7 @@ import {
   Button,
   Autocomplete
 } from '@mui/material';
+import { createTheme } from '@mui/material/styles';
 import { CollabEase } from '../../components/common/utils/EndpointUtils';
 import { Editor } from '@toast-ui/react-editor';
 import '@toast-ui/editor/dist/toastui-editor.css';
@@ -15,6 +16,12 @@ import '@toast-ui/editor/dist/toastui-editor.css';
 interface TaskItem {
   taskId: string;
   title: string;
+}
+
+interface PendingUpload {
+  id: string;
+  file: File;
+  type: 'image' | 'file';
 }
 
 interface CreateBoardDialogProps {
@@ -27,8 +34,10 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
   const [content, setContent] = useState('');
   const [taskList, setTaskList] = useState<TaskItem[]>([]);
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
-  // 선택한 파일들을 관리 (여러 파일 업로드 가능)
-  const [selectedFiles, setselectedFiles] = useState<File[]>([]);
+
+  // 업로드 전까지 보관할 파일 정보(첨부파일, 이미지 공통)
+  const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const editorRef = useRef<Editor>(null);
 
@@ -43,77 +52,124 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
       });
   }, []);
 
-  const handleCreate = async () => {
-    // 에디터의 최신 내용을 가져옵니다.
-    const markdownContent = editorRef.current?.getInstance().getMarkdown() || content;
+  /** 파일(이미지/첨부파일)을 업로드 대기열에 추가 */
+  const queueUpload = (file: File, type: 'image' | 'file'): string => {
+    const id = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    setPendingUploads((prev) => [...prev, { id, file, type }]);
+    return id;
+  };
 
-    const boardData = {
-      title,
-      content: markdownContent,
-      taskId: selectedTask?.taskId,
-    };
+  /** [파일] 업로드 버튼 클릭 -> 파일 선택 */
+  const handleCustomFileUploadClick = () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.onchange = (e: any) => {
+      const file: File = e.target.files?.[0];
+      if (!file) return;
 
-    const formData = new FormData();
-    formData.append("boardData", JSON.stringify(boardData));
-
-    // 선택한 모든 파일들을 FormData에 추가합니다.
-    selectedFiles.forEach((file: File) => {
-      formData.append("files", file);
-    });
-
-    try {
-      const response = await axiosInstance.post(
-        CollabEase.BOARD.CREATE_BOARD,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      onBoardCreated();
-    } catch (error: unknown) {
-      let errorMessage = '게시글 생성 중 에러가 발생했습니다.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
+      // 용량 체크
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 5) {
+        alert('파일 용량은 최대 5MB까지 허용됩니다.');
+        return;
       }
-      console.error('Error creating board:', errorMessage);
+
+      // 에디터 내에 플레이스 홀더 삽입
+      const id = queueUpload(file, 'file');
+      const editorInstance = editorRef.current?.getInstance();
+      if (editorInstance) {
+        editorInstance.insertText(`{{upload:${id}}}`);
+      }
+    };
+    fileInput.click();
+  };
+
+  /** [이미지] 에디터 내 이미지 업로드 훅 -> 즉시 업로드 대신 대기열로 */
+  const handleImageBlobHook = async (
+    blob: Blob,
+    callback: (url: string, altText?: string) => void
+  ) => {
+    const fileSizeMB = blob.size / (1024 * 1024);
+    if (fileSizeMB > 5) {
+      alert('이미지 용량은 최대 5MB까지 허용됩니다.');
+      return false;
+    }
+    // Blob -> File
+    const file = new File([blob], `image-${Date.now()}.png`, { type: blob.type });
+    const id = queueUpload(file, 'image');
+
+    // 에디터에 플레이스홀더 삽입
+    callback(`{{upload:${id}}}`, 'image');
+    return false;
+  };
+
+  /** 생성 버튼 클릭 -> 대기열 파일 업로드 -> 플레이스홀더 치환 -> 최종 전송 */
+  const handleCreate = async () => {
+    setUploading(true);
+    try {
+      // 1) 에디터 본문 가져오기
+      let finalContent = editorRef.current?.getInstance().getMarkdown() || content;
+
+      // 2) 대기열 파일 전부 업로드
+      const uploadResults = await Promise.all(
+        pendingUploads.map(async (item) => {
+          const formData = new FormData();
+          formData.append('file', item.file);
+          const response = await axiosInstance.post('/api/board/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          return { id: item.id, url: response.data };
+        })
+      );
+
+      // 3) 플레이스홀더 -> 실제 URL 치환
+      uploadResults.forEach(({ id, url }) => {
+        const placeholder = `{{upload:${id}}}`;
+        finalContent = finalContent.split(placeholder).join(url);
+      });
+
+      // 4) 최종 데이터 전송
+      const boardData = {
+        title,
+        content: finalContent,
+        taskId: selectedTask?.taskId
+      };
+      await axiosInstance.post(CollabEase.BOARD.CREATE_BOARD, boardData);
+
+      // 완료 후 초기화
+      setPendingUploads([]);
+      onBoardCreated();
+    } catch (err: unknown) {
+      let errorMessage = '게시글 생성 중 에러가 발생했습니다.';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
       alert(errorMessage);
+      console.error(errorMessage);
+    } finally {
+      setUploading(false);
     }
   };
 
+  /** TUI Editor의 툴바에 넣을 파일 업로드 버튼(DOM 요소) 생성 */
   const createCustomFileUploadButton = () => {
+    // 순수 DOM으로 버튼 생성
     const button = document.createElement('button');
     button.type = 'button';
+    button.innerText = '📎';
+    button.title = '파일 업로드';
+
+    // 예시: MUI 스타일을 흉내내기 위한 간단한 인라인 스타일
     button.style.background = 'none';
-    button.style.border = 'none';
+    button.style.border = '1px solid rgba(25, 118, 210, 0.5)';
+    button.style.borderRadius = '4px';
+    button.style.padding = '3px 8px';
     button.style.cursor = 'pointer';
     button.style.fontSize = '14px';
-    button.style.padding = '0 8px';
-    button.title = '파일 업로드';
-    button.innerText = '📎';
+    button.style.marginLeft = '4px';
 
-    button.addEventListener('click', () => {
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.onchange = (e: any) => {
-        const file: File = e.target.files?.[0];
-        if (!file) return;
-
-        const fileSizeMB = file.size / (1024 * 1024);
-        if (fileSizeMB > 5) {
-          alert('파일 용량은 최대 5MB까지 허용됩니다.');
-          return;
-        }
-
-        // 선택한 파일을 state에 추가합니다.
-        setselectedFiles((prevFiles) => [...prevFiles, file]);
-
-        // 에디터에 파일명(또는 간단한 마크다운)을 삽입합니다.
-        const editorInstance = editorRef.current?.getInstance();
-        if (editorInstance) {
-          // 실제 파일 URL은 등록 시 처리되므로, 임시 링크로 파일명을 표시합니다.
-          editorInstance.insertText(`[${file.name}]`);
-        }
-      };
-      fileInput.click();
-    });
+    // 클릭 이벤트 리스너
+    button.addEventListener('click', handleCustomFileUploadClick);
 
     return button;
   };
@@ -138,36 +194,7 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
           useCommandShortcut
           ref={editorRef}
           hooks={{
-            addImageBlobHook: async (blob, callback) => {
-              const fileSizeMB = blob.size / (1024 * 1024);
-              if (fileSizeMB > 5) {
-                alert('이미지 용량은 최대 5MB까지 허용됩니다.');
-                return false;
-              }
-              // 이미지 파일은 바로 업로드할 수도 있지만,
-              // 만약 이미지도 나중에 함께 전송하려면 이 부분도 수정해야 합니다.
-              // 현재 예시에서는 기존 로직을 그대로 유지합니다.
-              try {
-                const formData = new FormData();
-                formData.append('file', blob);
-
-                const response = await axiosInstance.post(
-                  CollabEase.BOARD.UPLOAD_BOARD_FILE,
-                  formData,
-                  { headers: { 'Content-Type': 'multipart/form-data' } }
-                );
-                const fileUrl = response.data.fileUrl;
-                callback(fileUrl, '이미지');
-              } catch (error: unknown) {
-                let errorMessage = '이미지 업로드 중 오류가 발생했습니다.';
-                if (error instanceof Error) {
-                  errorMessage = error.message;
-                }
-                console.error('File upload error:', errorMessage);
-                alert(errorMessage);
-              }
-              return false;
-            },
+            addImageBlobHook: handleImageBlobHook
           }}
           toolbarItems={[
             ['heading', 'bold', 'italic', 'strike'],
@@ -179,9 +206,9 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
               {
                 name: 'fileUpload',
                 tooltip: '파일 업로드',
-                el: createCustomFileUploadButton(),
-              },
-            ],
+                el: createCustomFileUploadButton() // 여기서 즉시 DOM 요소를 생성하여 반환
+              }
+            ]
           ]}
           onChange={() => {
             if (editorRef.current) {
@@ -203,8 +230,10 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>취소</Button>
-        <Button variant="contained" onClick={handleCreate}>
+        <Button onClick={onClose} disabled={uploading}>
+          취소
+        </Button>
+        <Button variant="contained" onClick={handleCreate} disabled={uploading}>
           생성
         </Button>
       </DialogActions>
