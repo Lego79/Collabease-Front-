@@ -8,7 +8,6 @@ import {
   Button,
   Autocomplete
 } from '@mui/material';
-import { createTheme } from '@mui/material/styles';
 import { CollabEase } from '../../components/common/utils/EndpointUtils';
 import { Editor } from '@toast-ui/react-editor';
 import '@toast-ui/editor/dist/toastui-editor.css';
@@ -16,12 +15,6 @@ import '@toast-ui/editor/dist/toastui-editor.css';
 interface TaskItem {
   taskId: string;
   title: string;
-}
-
-interface PendingUpload {
-  id: string;
-  file: File;
-  type: 'image' | 'file';
 }
 
 interface CreateBoardDialogProps {
@@ -35,12 +28,12 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
   const [taskList, setTaskList] = useState<TaskItem[]>([]);
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
 
-  // 업로드 전까지 보관할 파일 정보(첨부파일, 이미지 공통)
-  const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
-  const [uploading, setUploading] = useState(false);
+  // 여러 파일을 받을 수 있도록 FileList를 관리
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const editorRef = useRef<Editor>(null);
 
+  // Task 목록 불러오기
   useEffect(() => {
     axiosInstance
       .get<TaskItem[]>(CollabEase.BOARD.GET_TASK_DATA)
@@ -52,39 +45,22 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
       });
   }, []);
 
-  /** 파일(이미지/첨부파일)을 업로드 대기열에 추가 */
-  const queueUpload = (file: File, type: 'image' | 'file'): string => {
-    const id = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-    setPendingUploads((prev) => [...prev, { id, file, type }]);
-    return id;
+  /**
+   * 여러 파일 선택(추가) 시 상태에 저장
+   */
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files) return;
+    // 새롭게 선택한 파일들을 배열로 변환
+    const filesArray = Array.from(event.target.files);
+    // 기존 state에 누적(중복되지 않게 관리하려면 필터나 별도 로직 추가)
+    setSelectedFiles((prev) => [...prev, ...filesArray]);
   };
 
-  /** [파일] 업로드 버튼 클릭 -> 파일 선택 */
-  const handleCustomFileUploadClick = () => {
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.onchange = (e: any) => {
-      const file: File = e.target.files?.[0];
-      if (!file) return;
-
-      // 용량 체크
-      const fileSizeMB = file.size / (1024 * 1024);
-      if (fileSizeMB > 5) {
-        alert('파일 용량은 최대 5MB까지 허용됩니다.');
-        return;
-      }
-
-      // 에디터 내에 플레이스 홀더 삽입
-      const id = queueUpload(file, 'file');
-      const editorInstance = editorRef.current?.getInstance();
-      if (editorInstance) {
-        editorInstance.insertText(`{{upload:${id}}}`);
-      }
-    };
-    fileInput.click();
-  };
-
-  /** [이미지] 에디터 내 이미지 업로드 훅 -> 즉시 업로드 대신 대기열로 */
+  /**
+   * TUI Editor에서 이미지를 삽입할 때 호출되는 훅
+   * 이 예시에서는 즉시 업로드 대신, 단순 경고 후 삽입 취소하거나
+   * 필요 시 별도 업로드 로직 작성 가능
+   */
   const handleImageBlobHook = async (
     blob: Blob,
     callback: (url: string, altText?: string) => void
@@ -94,86 +70,48 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
       alert('이미지 용량은 최대 5MB까지 허용됩니다.');
       return false;
     }
-    // Blob -> File
-    const file = new File([blob], `image-${Date.now()}.png`, { type: blob.type });
-    const id = queueUpload(file, 'image');
+    // 여기서는 실제 업로드 없이, 에디터에 임시 텍스트만 삽입
+    // 실제로 업로드하려면 FormData를 통해 즉시 서버에 업로드하고
+    // 응답으로 받은 이미지 URL을 callback에 넣어주면 됩니다.
+    const tempUrl = URL.createObjectURL(blob);
+    callback(tempUrl, 'image-from-tui');
 
-    // 에디터에 플레이스홀더 삽입
-    callback(`{{upload:${id}}}`, 'image');
-    return false;
+    return false; // TUI Editor가 내부적으로 처리하지 않도록
   };
-
-  /** 생성 버튼 클릭 -> 대기열 파일 업로드 -> 플레이스홀더 치환 -> 최종 전송 */
   const handleCreate = async () => {
-    setUploading(true);
     try {
-      // 1) 에디터 본문 가져오기
-      let finalContent = editorRef.current?.getInstance().getMarkdown() || content;
-
-      // 2) 대기열 파일 전부 업로드
-      const uploadResults = await Promise.all(
-        pendingUploads.map(async (item) => {
-          const formData = new FormData();
-          formData.append('file', item.file);
-          const response = await axiosInstance.post('/api/board/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          return { id: item.id, url: response.data };
-        })
-      );
-
-      // 3) 플레이스홀더 -> 실제 URL 치환
-      uploadResults.forEach(({ id, url }) => {
-        const placeholder = `{{upload:${id}}}`;
-        finalContent = finalContent.split(placeholder).join(url);
-      });
-
-      // 4) 최종 데이터 전송
-      const boardData = {
+      // 에디터에서 최종 본문 내용 가져오기
+      const finalContent = editorRef.current?.getInstance().getMarkdown() || content;
+  
+      // 게시글 데이터 객체 생성
+      const boardDataObj = {
         title,
         content: finalContent,
-        taskId: selectedTask?.taskId
+        taskId: selectedTask?.taskId,
       };
-      await axiosInstance.post(CollabEase.BOARD.CREATE_BOARD, boardData);
-
-      // 완료 후 초기화
-      setPendingUploads([]);
+  
+      // FormData 구성: boardData는 JSON 문자열로 추가
+      const formData = new FormData();
+      formData.append('boardData', JSON.stringify(boardDataObj));
+  
+      // 선택된 파일들 추가
+      selectedFiles.forEach((file) => {
+        formData.append('files', file);
+      });
+  
+      // axios가 FormData 전송 시 Content-Type을 자동 설정합니다.
+      await axiosInstance.post('/api/board', formData);
+  
+      // 성공 후 상태 정리
+      setSelectedFiles([]);
       onBoardCreated();
-    } catch (err: unknown) {
-      let errorMessage = '게시글 생성 중 에러가 발생했습니다.';
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      alert(errorMessage);
-      console.error(errorMessage);
-    } finally {
-      setUploading(false);
+    } catch (err) {
+      console.error(err);
+      alert('게시글 생성 중 에러가 발생했습니다.');
     }
   };
-
-  /** TUI Editor의 툴바에 넣을 파일 업로드 버튼(DOM 요소) 생성 */
-  const createCustomFileUploadButton = () => {
-    // 순수 DOM으로 버튼 생성
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.innerText = '📎';
-    button.title = '파일 업로드';
-
-    // 예시: MUI 스타일을 흉내내기 위한 간단한 인라인 스타일
-    button.style.background = 'none';
-    button.style.border = '1px solid rgba(25, 118, 210, 0.5)';
-    button.style.borderRadius = '4px';
-    button.style.padding = '3px 8px';
-    button.style.cursor = 'pointer';
-    button.style.fontSize = '14px';
-    button.style.marginLeft = '4px';
-
-    // 클릭 이벤트 리스너
-    button.addEventListener('click', handleCustomFileUploadClick);
-
-    return button;
-  };
-
+  
+  
   return (
     <>
       <DialogTitle>새 게시글 생성</DialogTitle>
@@ -201,14 +139,7 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
             ['hr', 'quote'],
             ['ul', 'ol', 'task', 'indent', 'outdent'],
             ['table', 'image', 'link'],
-            ['code', 'codeblock'],
-            [
-              {
-                name: 'fileUpload',
-                tooltip: '파일 업로드',
-                el: createCustomFileUploadButton() // 여기서 즉시 DOM 요소를 생성하여 반환
-              }
-            ]
+            ['code', 'codeblock']
           ]}
           onChange={() => {
             if (editorRef.current) {
@@ -228,12 +159,33 @@ const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({ onClose, onBoardC
             <TextField {...params} label="Task 선택" margin="normal" />
           )}
         />
+
+        {/* 다중 파일 업로드 영역 */}
+        <div style={{ marginTop: '1rem' }}>
+          <Button variant="outlined" component="label">
+            파일 선택
+            <input
+              hidden
+              multiple
+              type="file"
+              onChange={handleFileChange}
+            />
+          </Button>
+
+          {/* 선택된 파일 목록 표시(옵션) */}
+          <div style={{ marginTop: '0.5rem' }}>
+            {selectedFiles.map((file, index) => (
+              <div key={index}>{file.name}</div>
+            ))}
+          </div>
+        </div>
       </DialogContent>
+
       <DialogActions>
-        <Button onClick={onClose} disabled={uploading}>
+        <Button onClick={onClose}>
           취소
         </Button>
-        <Button variant="contained" onClick={handleCreate} disabled={uploading}>
+        <Button variant="contained" onClick={handleCreate}>
           생성
         </Button>
       </DialogActions>
