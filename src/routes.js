@@ -57,6 +57,7 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 const Logins = React.lazy(() => import('./pages/login/Login'))
 const OAuthRedirect = React.lazy(() => import('./pages/login/OAuthRedirect'))
 const Board = React.lazy(() => import('./pages/board/Board'))
+const ChatPage = React.lazy(() => import('./pages/chat/ChatPage'))
 
 import ProtectedRoute from './routes/ProtectedRoute';
 
@@ -107,6 +108,7 @@ const routes = [
   { path: '/notifications/modals', name: 'Modals', element: Modals },
   { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
+  { path: '/chat', name: 'Chat', element: ChatPage },
   
 ]
 

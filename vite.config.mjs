@@ -9,6 +9,10 @@ export default defineConfig(() => {
     build: {
       outDir: 'build',
     },
+    plugins: [react()],
+    define: {
+      global: 'window', // 또는 global: 'globalThis'
+    },
     css: {
       postcss: {
         plugins: [
@@ -41,6 +45,7 @@ export default defineConfig(() => {
         {
           find: 'src/',
           replacement: `${path.resolve(__dirname, 'src')}/`,
+          'jwt-decode': 'jwt-decode/build/jwt-decode.esm.js',
         },
       ],
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.scss'],
