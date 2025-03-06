@@ -135,13 +135,39 @@ const ChatPage: React.FC = () => {
     };
   }, [token]);
 
-  // activeConversation 및 연결 상태 변경 시 재구독
-  useEffect(() => {
-    if (stompConnected && activeConversation) {
-      subscribeToConversation(activeConversation.conversationId);
-      fetchMessages(activeConversation.conversationId, 1, 20);
+  // // activeConversation 및 연결 상태 변경 시 재구독
+  // useEffect(() => {
+  //   if (stompConnected && activeConversation) {
+  //     subscribeToConversation(activeConversation.conversationId);
+  //     fetchMessages(activeConversation.conversationId, 1, 20);
+  //   }
+  // }, [stompConnected, activeConversation]);
+
+  // 구독 객체를 저장할 ref 생성
+const subscriptionRef = useRef<any>(null);
+
+useEffect(() => {
+  if (stompConnected && activeConversation) {
+    // 이전 구독이 있다면 해제
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
     }
-  }, [stompConnected, activeConversation]);
+    const destination = `/topic/conversations/${activeConversation.conversationId}`;
+    subscriptionRef.current = stompClientRef.current.subscribe(destination, (messageFrame: any) => {
+      const payload: MessageResponse = JSON.parse(messageFrame.body);
+      setMessages(prev => [...prev, payload]);
+    });
+    // 활성 대화방 전환 시 메시지 로드
+    fetchMessages(activeConversation.conversationId, 1, 20);
+  }
+  
+  // 클린업 함수로 구독 해제 처리
+  return () => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+  };
+}, [stompConnected, activeConversation]);
 
   const subscribeToConversation = (conversationId: number) => {
     if (!stompClientRef.current || !stompClientRef.current.connected) {
