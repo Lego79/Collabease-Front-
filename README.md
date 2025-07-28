@@ -1,185 +1,103 @@
-# CoreUI Free React Admin Template [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&logo=twitter)](https://twitter.com/intent/tweet?text=CoreUI%20-%20Free%React%204%20Admin%20Template%20&url=https://coreui.io&hashtags=bootstrap,admin,template,dashboard,panel,free,angular,react,vue)
+# 📌 CollabEase - 협업툴 기반 게시판 & 실시간 커뮤니케이션 플랫폼
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![@coreui coreui](https://img.shields.io/badge/@coreui%20-coreui-lightgrey.svg?style=flat-square)](https://github.com/coreui/coreui)
-[![npm package][npm-coreui-badge]][npm-coreui]
-[![NPM downloads][npm-coreui-download]][npm-coreui]
-[![@coreui react](https://img.shields.io/badge/@coreui%20-react-lightgrey.svg?style=flat-square)](https://github.com/coreui/react)
-[![npm package][npm-coreui-react-badge]][npm-coreui-react]
-[![NPM downloads][npm-coreui-react-download]][npm-coreui-react]  
+## ✨ 프로젝트 소개
 
-[npm-coreui]: https://www.npmjs.com/package/@coreui/coreui
-[npm-coreui-badge]: https://img.shields.io/npm/v/@coreui/coreui.png?style=flat-square
-[npm-coreui-download]: https://img.shields.io/npm/dm/@coreui/coreui.svg?style=flat-square
-[npm-coreui-react]: https://www.npmjs.com/package/@coreui/react
-[npm-coreui-react-badge]: https://img.shields.io/npm/v/@coreui/react.png?style=flat-square
-[npm-coreui-react-download]: https://img.shields.io/npm/dm/@coreui/react.svg?style=flat-square
-[npm]: https://www.npmjs.com/package/@coreui/react
+**CollabEase**는 게시판, 태스크 관리, 댓글, 실시간 채팅 기능을 통합한 **협업툴 기반 웹 애플리케이션**입니다. 팀원 간의 효율적인 협업을 위해 작성되었으며, 실시간 의사소통과 업무 추적을 동시에 제공합니다.
 
-[![Bootstrap Admin Template](https://assets.coreui.io/products/coreui-free-bootstrap-admin-template-light-dark.webp)](https://coreui.io/product/free-react-admin-template/)
+> 백엔드는 Spring Boot (Java) 기반, 프론트엔드는 React (TypeScript) 기반으로 구성되어 있습니다.
 
-CoreUI is meant to be the UX game changer. Pure & transparent code is devoid of redundant components, so the app is light enough to offer ultimate user experience. This means mobile devices also, where the navigation is just as easy and intuitive as on a desktop or laptop. The CoreUI Layout API lets you customize your project for almost any device – be it Mobile, Web or WebApp – CoreUI covers them all!
+---
 
-## Table of Contents
+## 📷 주요 기능
 
-* [Versions](#versions)
-* [CoreUI PRO](#coreui-pro)
-* [CoreUI PRO React Admin Templates](#coreui-pro-react-admin-templates)
-* [Quick Start](#quick-start)
-* [Installation](#installation)
-* [Basic usage](#basic-usage)
-* [What's included](#whats-included)
-* [Documentation](#documentation)
-* [Versioning](#versioning)
-* [Creators](#creators)
-* [Community](#community)
-* [Support CoreUI Development](#support-coreui-development)
-* [Copyright and License](#copyright-and-license)
+| 기능 구분         | 설명 |
+|------------------|------|
+| 📝 게시판 관리    | 게시글 작성, 수정, 삭제 (소프트 딜리트), 페이지네이션, 조회수 |
+| 💬 댓글 시스템    | 대댓글(1-depth), 댓글 작성/삭제, 실시간 반영 |
+| 📎 첨부파일 기능   | 게시글과 함께 다중 파일 업로드 지원 |
+| ✅ 업무(Task) 관리 | 업무 등록, 상태변경, 기간 관리, 게시글과 연계 |
+| 🧑‍🤝‍🧑 OAuth 로그인 | 구글 OAuth2 로그인, 토큰 저장 처리 |
+| 📡 실시간 채팅    | WebSocket 기반의 채팅 기능 (예정 또는 구현 포함) |
+| 🔔 알림 기능       | 댓글/게시글에 대한 알림 처리 (DB 기반 저장) |
 
-## Versions
+---
 
-* [CoreUI Free Bootstrap Admin Template](https://github.com/coreui/coreui-free-bootstrap-admin-template)
-* [CoreUI Free Angular Admin Template](https://github.com/coreui/coreui-free-angular-admin-template)
-* [CoreUI Free React.js Admin Template (Vite)](https://github.com/coreui/coreui-free-react-admin-template)
-* [CoreUI Free React.js Admin Template (Create React App)](https://github.com/coreui/coreui-free-react-admin-template-cra)
-* [CoreUI Free Vue.js Admin Template](https://github.com/coreui/coreui-free-vue-admin-template)
+## 🧱 기술 스택
 
-## CoreUI PRO
+### 🔧 백엔드 (Spring Boot)
 
-* 💪  [CoreUI PRO Angular Admin Template](https://coreui.io/product/angular-dashboard-template/)
-* 💪  [CoreUI PRO Bootstrap Admin Template](https://coreui.io/product/bootstrap-dashboard-template/)
-* 💪  [CoreUI PRO Next.js Admin Template](https://coreui.io/product/next-js-dashboard-template/)
-* 💪  [CoreUI PRO React Admin Template](https://coreui.io/product/react-dashboard-template/)
-* 💪  [CoreUI PRO Vue Admin Template](https://coreui.io/product/vue-dashboard-template/)
+- Spring Boot 3.x
+- Spring Security + JWT + OAuth2 (Google)
+- JPA (Hibernate)
+- PostgreSQL
+- WebSocket (STOMP 기반)
+- DTO / Service / Repository 레이어 구조화
+- 파일 업로드: Multipart + LocalStorage
+- 예외 처리: 커스텀 예외 + GlobalExceptionHandler
 
-## CoreUI PRO React Admin Templates
+### 🎨 프론트엔드 (React + TypeScript)
 
-| Default Theme | Light Theme |
-| --- | --- |
-| [![CoreUI PRO React Admin Template](https://coreui.io/images/templates/coreui_pro_default_light_dark.webp)](https://coreui.io/product/react-dashboard-template/?theme=default) | [![CoreUI PRO React Admin Template](https://coreui.io/images/templates/coreui_pro_light_light_dark.webp)](https://coreui.io/product/react-dashboard-template/?theme=light)|
+- React 18
+- TypeScript
+- MUI (Material UI) + styled-components
+- Axios + React Query (또는 Axios 직접 사용)
+- React Router v6
+- Drag & Drop: @hello-pangea/dnd
+- Toast UI Editor / Viewer
+- OAuthRedirect + Token 기반 인증 처리
 
-| Modern Theme | Bright Theme |
-| --- | --- |
-| [![CoreUI PRO React Admin Template](https://coreui.io/images/templates/coreui_pro_default_v3_light_dark.webp)](https://coreui.io/product/react-dashboard-template/?theme=modern) | [![CoreUI PRO React Admin Template](https://coreui.io/images/templates/coreui_pro_light_v3_light_dark.webp)](https://coreui.io/product/react-dashboard-template/?theme=bright)|
+---
 
-## Quick Start
+## 🧪 실행 방법
 
-- [Download the latest release](https://github.com/coreui/coreui-free-react-admin-template/archive/refs/heads/main.zip)
-- Clone the repo: `git clone https://github.com/coreui/coreui-free-react-admin-template.git`
-
-### Installation
-
-``` bash
-$ npm install
-```
-
-or
-
-``` bash
-$ yarn install
-```
-
-### Basic usage
-
-``` bash
-# dev server with hot reload at http://localhost:3000
-$ npm start 
-```
-
-or 
-
-``` bash
-# dev server with hot reload at http://localhost:3000
-$ yarn start
-```
-
-Navigate to [http://localhost:3000](http://localhost:3000). The app will automatically reload if you change any of the source files.
-
-#### Build
-
-Run `build` to build the project. The build artifacts will be stored in the `build/` directory.
+### ✅ 백엔드 실행
 
 ```bash
-# build for production with minification
-$ npm run build
-```
+# 1. 환경 설정 (.env or application.yml)
+spring.datasource.url=jdbc:postgresql://localhost:5432/your-db
+spring.datasource.username=your-username
+spring.datasource.password=your-password
 
-or
+# 2. 실행
+./gradlew bootRun
 
-```bash
-# build for production with minification
-$ yarn build
-```
 
-## What's included
+🗃️ ERD 요약
+Member ↔ Role: 다대다 (중간 테이블: MemberRole)
 
-Within the download you'll find the following directories and files, logically grouping common assets and providing both compiled and minified variations. You'll see something like this:
+Member → Board: 일대다
 
-```
-coreui-free-react-admin-template
-├── public/          # static files
-│   ├── favicon.ico
-│   └── manifest.json
-│
-├── src/             # project root
-│   ├── assets/      # images, icons, etc.
-│   ├── components/  # common components - header, footer, sidebar, etc.
-│   ├── layouts/     # layout containers
-│   ├── scss/        # scss styles
-│   ├── views/       # application views
-│   ├── _nav.js      # sidebar navigation config
-│   ├── App.js
-│   ├── index.js
-│   ├── routes.js    # routes config
-│   └── store.js     # template state example 
-│
-├── index.html       # html template
-├── ...
-├── package.json
-├── ...
-└── vite.config.mjs  # vite config
-```
+Board → Comment: 일대다
 
-## Documentation
+Comment → Comment: Self-Join (대댓글)
 
-The documentation for the CoreUI Admin Template is hosted at our website [CoreUI for React](https://coreui.io/react/docs/templates/installation/)
+Board → Attachment: 일대다
 
-## Versioning
+Member → Notification: 일대다
 
-For transparency into our release cycle and in striving to maintain backward compatibility, CoreUI Free Admin Template is maintained under [the Semantic Versioning guidelines](http://semver.org/).
+Board → Task: 다대일
 
-See [the Releases section of our project](https://github.com/coreui/coreui-free-react-admin-template/releases) for changelogs for each release version.
+📎 주요 스크린샷
 
-## Creators
+🙌 기여자
+FE / REACT: yourname
 
-**Łukasz Holeczek**
+BE / SPRING: yourname
 
-* <https://twitter.com/lukaszholeczek>
-* <https://github.com/mrholek>
+DATABASE / 설계: yourname
 
-**Andrzej Kopański**
+📌 TODO / 향후 개선 사항
+ 실시간 채팅 기능 완성 및 UI 통합
 
-* <https://github.com/xidedix>
+ 댓글 알림 WebSocket 연동
 
-**CoreUI Team**
+ 게시글/댓글 검색 기능
 
-* <https://twitter.com/core_ui>
-* <https://github.com/coreui>
-* <https://github.com/orgs/coreui/people>
+ 관리자 기능 (유저 관리 등)
 
-## Community
+ CI/CD 파이프라인 (GitHub Actions + Docker)
 
-Get updates on CoreUI's development and chat with the project maintainers and community members.
 
-- Follow [@core_ui on Twitter](https://twitter.com/core_ui).
-- Read and subscribe to [CoreUI Blog](https://coreui.ui/blog/).
+출처
+UI 템플릿 구조 및 스타일은 CoreUI Free React Admin Template (MIT License) 에서 가져왔습니다.
 
-## Support CoreUI Development
-
-CoreUI is an MIT-licensed open source project and is completely free to use. However, the amount of effort needed to maintain and develop new features for the project is not sustainable without proper financial backing. You can support development by buying the [CoreUI PRO](https://coreui.io/pricing/?framework=react&src=github-coreui-free-react-admin-template) or by becoming a sponsor via [Open Collective](https://opencollective.com/coreui/).
-
-## Copyright and License
-
-copyright 2025 creativeLabs Łukasz Holeczek.   
-
-Code released under [the MIT license](https://github.com/coreui/coreui-free-react-admin-template/blob/main/LICENSE).
