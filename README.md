@@ -80,11 +80,11 @@ Board → Task: 다대일
 📎 주요 스크린샷
 
 🙌 기여자
-FE / REACT: yourname
+FE / REACT: 나강혁
 
-BE / SPRING: yourname
+BE / SPRING: 나강혁
 
-DATABASE / 설계: yourname
+DATABASE / 설계: 나강혁
 
 📌 TODO / 향후 개선 사항
  실시간 채팅 기능 완성 및 UI 통합
